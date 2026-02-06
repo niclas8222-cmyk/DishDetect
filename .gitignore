@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.vscode/
+.DS_Store
+*.log
+*.pid
+*.egg-info/
+dist/
+build/
+server*.log
+server*.pid
+server_bg.log
+server_bg.pid
+test_caprese.jpg

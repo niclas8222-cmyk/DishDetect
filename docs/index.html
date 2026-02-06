@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DishDetect — Rezepte nach Zutaten</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --muted: #6b7280;
+            --text: #0f172a;
+            --accent: #0066cc;
+            --radius: 14px;
+            --shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            color: var(--text);
+            background: #f6f7f9;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.4;
+            font-size: 16px;
+            padding: 16px 16px 88px;
+        }
+
+        .page {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            padding: 6px 0 12px;
+        }
+
+        .brand {
+            font-size: 20px;
+            margin: 0;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .lead {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        /* Content area */
+        .content {
+            display: block;
+            gap: 12px;
+        }
+
+        /* Input card */
+        .input-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(15, 23, 42, 0.04);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 15px;
+            color: var(--text);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        .primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+            min-height: 44px;
+        }
+
+        .primary:hover {
+            opacity: 0.9;
+        }
+
+        .primary:active {
+            opacity: 0.85;
+        }
+
+        .primary:focus-visible {
+            outline: 3px solid rgba(0, 102, 204, 0.14);
+            outline-offset: 2px;
+        }
+
+        /* Ingredients list */
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 14px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(15, 23, 42, 0.04);
+        }
+
+        .card-title {
+            margin: 0 0 12px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .ingredients-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ing-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(15, 23, 42, 0.04);
+            border-radius: 8px;
+            font-size: 15px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .ing-item span {
+            flex: 1;
+        }
+
+        .ing-remove {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 0 4px;
+        }
+
+        .ing-remove:hover {
+            opacity: 0.8;
+        }
+
+        /* Recipes section */
+        .recipes-section,
+        .near-miss-section {
+            display: none;
+        }
+
+        .recipes-section.visible,
+        .near-miss-section.visible {
+            display: block;
+        }
+
+        .recipes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .recipe-item {
+            display: block;
+            padding: 10px;
+            background: rgba(16, 185, 129, 0.06);
+            border-left: 4px solid #10b981;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .recipe-item strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #059669;
+        }
+
+        .recipe-optional {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .near-miss-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .near-miss-item {
+            display: block;
+            padding: 10px;
+            background: rgba(217, 119, 6, 0.06);
+            border-left: 4px solid #f59e0b;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .near-miss-item strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #d97706;
+        }
+
+        .missing-ingredients {
+            font-size: 13px;
+            color: #d97706;
+        }
+
+        .empty-state {
+            padding: 20px;
+            text-align: center;
+            font-style: italic;
+            color: var(--muted);
+        }
+
+        .section-divider {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .info-text {
+            margin-top: 8px;
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.05);
+            border-left: 3px solid #3b82f6;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        @media (min-width: 700px) {
+            body {
+                padding: 28px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="header">
+            <div class="header-inner">
+                <h1 class="brand">DishDetect</h1>
+                <p class="lead">Gib deine Zutaten ein — wir zeigen passende Rezepte.</p>
+            </div>
+        </header>
+
+        <section class="content">
+            <!-- Input card -->
+            <div class="input-card">
+                <div class="input-group">
+                    <input
+                        id="ingredient-input"
+                        type="text"
+                        placeholder="z.B. Tomaten, Mozzarella, Basilikum…"
+                        autocomplete="off"
+                    >
+                    <button id="add-btn" class="primary">Hinzufügen</button>
+                </div>
+                <p class="info-text">💡 Gibt Zutaten einzeln ein und drücke Enter oder klick „Hinzufügen"</p>
+            </div>
+
+            <!-- Ingredients card -->
+            <div id="ingredients-card" class="card">
+                <h2 class="card-title">Deine Zutaten</h2>
+                <div id="ingredients-list" class="ingredients-list">
+                    <p class="empty-state">Keine Zutaten hinzugefügt</p>
+                </div>
+            </div>
+
+            <!-- Recipes card -->
+            <div id="recipes-card" class="card recipes-section">
+                <h2 class="card-title">✅ Mögliche Gerichte</h2>
+                <div id="recipes-list" class="recipes-list"></div>
+            </div>
+
+            <!-- Near-miss card -->
+            <div id="near-miss-card" class="card near-miss-section section-divider">
+                <h3 class="card-title" style="color: #d97706;">⚠️ Fast möglich (1–2 Zutaten fehlen)</h3>
+                <div id="near-miss-list" class="near-miss-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // ========== RECIPE DATABASE ==========
+        const RECIPES = [
+            {
+                name: 'Tomate-Mozzarella (Caprese)',
+                required: ['tomato', 'mozzarella', 'basil'],
+                optional: ['olive oil', 'salt', 'pepper', 'balsamic vinegar']
+            },
+            {
+                name: 'Gin Tonic',
+                required: ['gin', 'tonic'],
+                optional: ['lemon', 'lime']
+            },
+            {
+                name: 'Einfacher Tomatensalat',
+                required: ['tomato', 'salt'],
+                optional: ['olive oil', 'onion', 'basil', 'pepper']
+            },
+            {
+                name: 'Gemischter Salat',
+                required: ['lettuce'],
+                optional: ['tomato', 'cucumber', 'onion', 'olive oil', 'vinegar', 'salt']
+            },
+            {
+                name: 'Pasta Carbonara',
+                required: ['pasta', 'egg', 'bacon', 'parmesan'],
+                optional: ['pepper', 'salt', 'cream']
+            },
+            {
+                name: 'Pasta al Pesto',
+                required: ['pasta', 'basil', 'olive oil', 'garlic'],
+                optional: ['parmesan', 'pine nuts', 'lemon zest', 'salt']
+            },
+            {
+                name: 'Einfache Pasta mit Tomaten',
+                required: ['pasta', 'tomato'],
+                optional: ['garlic', 'olive oil', 'basil', 'salt', 'onion']
+            },
+            {
+                name: 'Iced Latte',
+                required: ['coffee', 'milk'],
+                optional: ['sugar', 'honey']
+            },
+            {
+                name: 'Einfacher Kaffee',
+                required: ['coffee'],
+                optional: ['milk', 'sugar', 'honey']
+            },
+            {
+                name: 'Käsebrot',
+                required: ['bread', 'cheese'],
+                optional: ['butter', 'ham', 'tomato', 'onion']
+            },
+            {
+                name: 'Klassisches Sandwich',
+                required: ['bread', 'ham'],
+                optional: ['cheese', 'tomato', 'lettuce', 'mayonnaise', 'mustard']
+            },
+            {
+                name: 'Hausgemachtes Pesto',
+                required: ['basil', 'olive oil', 'garlic'],
+                optional: ['parmesan', 'pine nuts', 'lemon zest', 'salt']
+            },
+            {
+                name: 'Vinaigrette',
+                required: ['olive oil', 'vinegar'],
+                optional: ['salt', 'mustard', 'honey']
+            },
+            {
+                name: 'Einfache Brühe',
+                required: ['stock'],
+                optional: ['salt', 'pepper', 'onion', 'garlic', 'carrot']
+            },
+        ];
+
+        // ========== INGREDIENT MAPPINGS ==========
+        const INGREDIENT_CANONICAL = {
+            // Common variants → canonical form
+            'tomato': 'tomato', 'tomaten': 'tomato',
+            'mozzarella': 'mozzarella',
+            'basil': 'basil', 'basilikum': 'basil',
+            'gin': 'gin',
+            'tonic': 'tonic', 'tonic water': 'tonic',
+            'lemon': 'lemon', 'zitrone': 'lemon',
+            'lime': 'lime',
+            'salt': 'salt', 'salz': 'salt',
+            'olive oil': 'olive oil', 'oliveöl': 'olive oil',
+            'onion': 'onion', 'zwiebel': 'onion',
+            'lettuce': 'lettuce', 'salat': 'lettuce',
+            'cucumber': 'cucumber', 'gurke': 'cucumber',
+            'pasta': 'pasta', 'nudeln': 'pasta',
+            'egg': 'egg', 'ei': 'egg', 'eggs': 'egg',
+            'bacon': 'bacon', 'speck': 'bacon',
+            'parmesan': 'parmesan',
+            'pepper': 'pepper', 'pfeffer': 'pepper', 'black pepper': 'pepper',
+            'garlic': 'garlic', 'knoblauch': 'garlic',
+            'coffee': 'coffee', 'kaffee': 'coffee',
+            'milk': 'milk', 'milch': 'milk',
+            'honey': 'honey', 'honig': 'honey',
+            'bread': 'bread', 'brot': 'bread',
+            'cheese': 'cheese', 'käse': 'cheese',
+            'butter': 'butter',
+            'ham': 'ham', 'schinken': 'ham',
+            'cream': 'cream', 'sahne': 'cream',
+            'mayonnaise': 'mayonnaise', 'mayo': 'mayonnaise',
+            'mustard': 'mustard', 'senf': 'mustard',
+            'pine nuts': 'pine nuts', 'pinienkerne': 'pine nuts',
+            'lemon zest': 'lemon zest',
+            'stock': 'stock', 'broth': 'stock', 'brühe': 'stock',
+            'carrot': 'carrot', 'möhre': 'carrot'
+        };
+
+        const CANONICAL_DISPLAY = {
+            'tomato': 'Tomaten',
+            'mozzarella': 'Mozzarella',
+            'basil': 'Basilikum',
+            'gin': 'Gin',
+            'tonic': 'Tonic Water',
+            'lemon': 'Zitrone',
+            'lime': 'Limette',
+            'salt': 'Salz',
+            'olive oil': 'Olivenöl',
+            'onion': 'Zwiebel',
+            'lettuce': 'Salat',
+            'cucumber': 'Gurke',
+            'pasta': 'Nudeln',
+            'egg': 'Ei',
+            'bacon': 'Speck',
+            'parmesan': 'Parmesan',
+            'pepper': 'Pfeffer',
+            'garlic': 'Knoblauch',
+            'coffee': 'Kaffee',
+            'milk': 'Milch',
+            'honey': 'Honig',
+            'bread': 'Brot',
+            'cheese': 'Käse',
+            'butter': 'Butter',
+            'ham': 'Schinken',
+            'cream': 'Sahne',
+            'mayonnaise': 'Mayonnaise',
+            'mustard': 'Senf',
+            'pine nuts': 'Pinienkerne',
+            'stock': 'Brühe',
+            'carrot': 'Möhre',
+            'vinegar': 'Essig',
+            'balsamic vinegar': 'Balsamico'
+        };
+
+        // ========== STATE ==========
+        let ingredients = new Set(); // canonical keys
+
+        // ========== DOM ELEMENTS ==========
+        const input = document.getElementById('ingredient-input');
+        const addBtn = document.getElementById('add-btn');
+        const ingredientsList = document.getElementById('ingredients-list');
+        const recipesCard = document.getElementById('recipes-card');
+        const recipesList = document.getElementById('recipes-list');
+        const nearMissCard = document.getElementById('near-miss-card');
+        const nearMissList = document.getElementById('near-miss-list');
+
+        // ========== EVENT LISTENERS ==========
+        addBtn.addEventListener('click', addIngredient);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addIngredient();
+            }
+        });
+
+        // ========== FUNCTIONS ==========
+        function canonicalize(text) {
+            const lower = text.toLowerCase().trim();
+            return INGREDIENT_CANONICAL[lower] || lower;
+        }
+
+        function displayName(canonical) {
+            return CANONICAL_DISPLAY[canonical] || canonical.charAt(0).toUpperCase() + canonical.slice(1);
+        }
+
+        function addIngredient() {
+            const raw = input.value.trim();
+            if (!raw) return;
+
+            const canonical = canonicalize(raw);
+            
+            if (ingredients.has(canonical)) {
+                alert(`"${displayName(canonical)}" ist schon in der Liste.`);
+                return;
+            }
+
+            ingredients.add(canonical);
+            input.value = '';
+            render();
+        }
+
+        function removeIngredient(canonical) {
+            ingredients.delete(canonical);
+            render();
+        }
+
+        function evaluateRecipes() {
+            const matched = [];
+            const nearMiss = [];
+
+            for (const recipe of RECIPES) {
+                const missing = recipe.required.filter(ing => !ingredients.has(ing));
+                
+                if (missing.length === 0) {
+                    // All required ingredients present
+                    const optionalFound = recipe.optional.filter(ing => ingredients.has(ing));
+                    matched.push({
+                        name: recipe.name,
+                        optional: optionalFound
+                    });
+                } else if (missing.length <= 2) {
+                    // Missing 1-2 ingredients (near-miss)
+                    nearMiss.push({
+                        name: recipe.name,
+                        missing: missing,
+                        count: missing.length
+                    });
+                }
+            }
+
+            // Sort near-miss by fewest missing first
+            nearMiss.sort((a, b) => a.count - b.count);
+
+            return { matched, nearMiss };
+        }
+
+        function render() {
+            // Render ingredients list
+            if (ingredients.size === 0) {
+                ingredientsList.innerHTML = '<p class="empty-state">Keine Zutaten hinzugefügt</p>';
+            } else {
+                ingredientsList.innerHTML = Array.from(ingredients)
+                    .sort()
+                    .map(canonical => {
+                        return `
+                            <div class="ing-item">
+                                <span>+ ${displayName(canonical)}</span>
+                                <button class="ing-remove" onclick="removeIngredientHandler('${canonical}')">✕</button>
+                            </div>
+                        `;
+                    })
+                    .join('');
+            }
+
+            // Evaluate and render recipes
+            const { matched, nearMiss } = evaluateRecipes();
+
+            if (matched.length === 0) {
+                recipesCard.classList.remove('visible');
+            } else {
+                recipesCard.classList.add('visible');
+                recipesList.innerHTML = matched
+                    .map(recipe => {
+                        let html = `<div class="recipe-item"><strong>${recipe.name}</strong>`;
+                        if (recipe.optional.length > 0) {
+                            const optDisplay = recipe.optional.map(displayName).join(', ');
+                            html += `<div class="recipe-optional">+ ${optDisplay}</div>`;
+                        }
+                        html += '</div>';
+                        return html;
+                    })
+                    .join('');
+            }
+
+            if (nearMiss.length === 0) {
+                nearMissCard.classList.remove('visible');
+            } else {
+                nearMissCard.classList.add('visible');
+                nearMissList.innerHTML = nearMiss
+                    .map(recipe => {
+                        const missingDisplay = recipe.missing.map(displayName).join(', ');
+                        return `
+                            <div class="near-miss-item">
+                                <strong>${recipe.name}</strong>
+                                <div class="missing-ingredients">Fehlt: ${missingDisplay}</div>
+                            </div>
+                        `;
+                    })
+                    .join('');
+            }
+        }
+
+        function removeIngredientHandler(canonical) {
+            removeIngredient(canonical);
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
